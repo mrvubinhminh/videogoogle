@@ -1,0 +1,920 @@
+<!doctype html>
+<html lang="vi">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chiếu Video Drive – Trình chiếu video dạy học</title>
+<meta name="description" content="Mở link hoặc thư mục video Google Drive, xếp thành danh sách bài học và trình chiếu trên lớp với bút vẽ, đèn soi, màn đen, hẹn giờ và phím tắt bút trình chiếu.">
+<meta property="og:title" content="Chiếu Video Drive – Trình chiếu video dạy học">
+<meta property="og:description" content="Dán link video hoặc thư mục Google Drive, trình chiếu toàn màn hình kèm công cụ dạy học.">
+<meta name="theme-color" content="#0f172a">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="preconnect" href="https://drive.google.com">
+<link href="https://fonts.googleapis.com/css2?family=Be+Vietnam+Pro:wght@400;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#f6f5f2; --surface:#ffffff; --surface-2:#f0eee9; --text:#1c1917; --muted:#6b6560; --border:#e3e0da;
+  --primary:#0f766e; --primary-hover:#115e59; --primary-contrast:#fff; --primary-soft:#ccfbf1;
+  --danger:#b91c1c; --warn:#b45309; --warn-soft:#fef3c7; --success:#15803d;
+  --stage:#05070a; --stage-bar:#111418; --stage-text:#e8eaed;
+  --radius:12px; --radius-s:8px;
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:24px; --s6:40px;
+  --font:"Be Vietnam Pro",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --shadow:0 1px 2px rgb(0 0 0/.06),0 4px 16px rgb(0 0 0/.05);
+  --ease:cubic-bezier(.2,.8,.2,1);
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --bg:#0e1013; --surface:#16191d; --surface-2:#1e2227; --text:#eceae6; --muted:#a19b94; --border:#2a2f35;
+  --primary:#2dd4bf; --primary-hover:#5eead4; --primary-contrast:#04201d; --primary-soft:#123b37;
+  --danger:#f87171; --warn:#fbbf24; --warn-soft:#3a2d0c; --success:#4ade80;
+}}
+:root[data-theme="dark"]{
+  --bg:#0e1013; --surface:#16191d; --surface-2:#1e2227; --text:#eceae6; --muted:#a19b94; --border:#2a2f35;
+  --primary:#2dd4bf; --primary-hover:#5eead4; --primary-contrast:#04201d; --primary-soft:#123b37;
+  --danger:#f87171; --warn:#fbbf24; --warn-soft:#3a2d0c; --success:#4ade80;
+}
+*{box-sizing:border-box}
+html,body{margin:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--font);font-size:15px;line-height:1.5;-webkit-font-smoothing:antialiased}
+button,input,textarea,select{font:inherit;color:inherit}
+:focus-visible{outline:3px solid var(--primary);outline-offset:2px;border-radius:6px}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+
+/* ---------- Header ---------- */
+.top{display:flex;align-items:center;gap:var(--s3);padding:var(--s3) var(--s4);border-bottom:1px solid var(--border);background:var(--surface)}
+.brand{display:flex;align-items:center;gap:var(--s2);margin-right:auto;min-width:0}
+.brand-mark{width:34px;height:34px;border-radius:9px;background:var(--primary);color:var(--primary-contrast);display:grid;place-items:center;flex:none}
+.brand h1{font-size:17px;margin:0;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.brand small{display:block;color:var(--muted);font-size:12px;font-weight:400}
+
+/* ---------- Buttons ---------- */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:40px;padding:0 14px;border-radius:var(--radius-s);border:1px solid var(--border);background:var(--surface);cursor:pointer;font-weight:600;font-size:14px;transition:background .15s var(--ease),border-color .15s,transform .1s}
+.btn:hover{background:var(--surface-2)}
+.btn:active{transform:scale(.97)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:var(--primary-contrast)}
+.btn.primary:hover{background:var(--primary-hover)}
+.btn.icon{width:40px;padding:0}
+.btn.ghost{border-color:transparent;background:transparent}
+.btn.ghost:hover{background:var(--surface-2)}
+.btn svg{width:18px;height:18px;flex:none}
+
+/* ---------- Layout ---------- */
+.app{display:grid;grid-template-columns:minmax(0,1fr) 360px;gap:var(--s4);padding:var(--s4);max-width:1600px;margin:0 auto}
+body.class-mode .app{grid-template-columns:minmax(0,1fr)}
+body.class-mode .side{display:none}
+@media (max-width:1023px){.app{grid-template-columns:minmax(0,1fr)}}
+
+/* ---------- Stage ---------- */
+.stage-wrap{align-self:start;display:flex;flex-direction:column;border-radius:var(--radius);overflow:hidden;background:var(--stage);box-shadow:var(--shadow);min-width:0}
+.stage{position:relative;aspect-ratio:16/9;background:var(--stage);width:100%}
+.stage iframe,.stage video{position:absolute;inset:0;width:100%;height:100%;border:0;background:var(--stage)}
+.stage video{object-fit:contain}
+.osd{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);z-index:7;background:rgb(0 0 0/.7);color:#fff;font-weight:700;font-size:clamp(22px,3vw,40px);padding:14px 28px;border-radius:16px;pointer-events:none;opacity:0;transition:opacity .25s}
+.osd.on{opacity:1}
+.flash{position:absolute;inset:0;z-index:8;background:#fff;opacity:0;pointer-events:none}
+.flash.on{animation:fl .35s ease-out}
+@keyframes fl{0%{opacity:.85}100%{opacity:0}}
+body.capturing .toast-wrap,body.capturing .osd{visibility:hidden}
+.stage-wrap:fullscreen{border-radius:0}
+.stage-wrap:fullscreen .stage{aspect-ratio:auto;flex:1}
+.empty[hidden]{display:none!important}
+.empty{position:absolute;inset:0;display:grid;place-items:center;text-align:center;color:var(--stage-text);padding:var(--s5)}
+.empty h2{font-size:clamp(20px,2.6vw,30px);margin:0 0 var(--s2)}
+.empty p{margin:0 auto;color:#a6adb5;max-width:520px}
+.empty .steps{display:flex;gap:var(--s3);justify-content:center;flex-wrap:wrap;margin-top:var(--s5)}
+.empty .step{background:#12171c;border:1px solid #232a31;border-radius:var(--radius-s);padding:var(--s3) var(--s4);font-size:14px;color:#cfd5db}
+.empty .step b{color:#5eead4}
+
+#draw{position:absolute;inset:0;width:100%;height:100%;pointer-events:none;touch-action:none;z-index:3}
+body.tool-draw #draw{pointer-events:auto;cursor:crosshair}
+.spot{position:absolute;inset:0;z-index:4;display:none;cursor:none;background:radial-gradient(circle var(--r,260px) at var(--x,50%) var(--y,50%),transparent 0 90%,rgb(0 0 0/.85) 100%)}
+body.tool-spot .spot{display:block}
+.black{position:absolute;inset:0;z-index:6;background:#000;display:none;place-items:center;color:#9aa3ab;font-size:clamp(18px,2.4vw,32px);text-align:center;cursor:pointer}
+.black.on{display:grid}
+.timer-chip{position:absolute;top:14px;right:14px;z-index:5;background:rgb(0 0 0/.72);color:#fff;font-weight:700;font-variant-numeric:tabular-nums;font-size:clamp(20px,2.4vw,34px);padding:6px 16px;border-radius:999px;display:none;border:2px solid transparent}
+.timer-chip.on{display:block}
+.timer-chip.warn{border-color:#fbbf24}
+.timer-chip.done{background:#b91c1c;animation:pulse 1s infinite}
+@keyframes pulse{50%{transform:scale(1.06)}}
+.folder-hint{position:absolute;left:12px;bottom:12px;z-index:2;background:rgb(15 23 42/.9);color:#e2e8f0;font-size:13px;padding:8px 12px;border-radius:8px;max-width:calc(100% - 24px)}
+
+/* ---------- Control bar ---------- */
+.bar{display:flex;align-items:center;gap:var(--s2);padding:var(--s2) var(--s3);background:var(--stage-bar);color:var(--stage-text);flex-wrap:wrap}
+.bar .btn{background:#1c2229;border-color:#2a323b;color:var(--stage-text);min-height:44px}
+.bar .btn:hover{background:#26303a}
+.bar .btn[aria-pressed="true"]{background:#0f766e;border-color:#14b8a6;color:#fff}
+.bar .title{flex:1 1 200px;min-width:140px;font-weight:600;font-size:clamp(14px,1.3vw,20px);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;padding:0 var(--s2)}
+.bar .title small{display:block;color:#8b949e;font-weight:400;font-size:12px}
+.bar .sep{width:1px;height:28px;background:#2a323b}
+.pens{display:none;gap:6px;align-items:center}
+body.tool-draw .pens{display:flex}
+.pen{width:28px;height:28px;border-radius:50%;border:3px solid transparent;cursor:pointer;padding:0}
+.pen[aria-pressed="true"]{border-color:#fff}
+@media (max-width:640px){.bar .label{display:none}.bar .title{order:-1;flex-basis:100%}}
+
+/* ---------- Sidebar ---------- */
+.side{display:flex;flex-direction:column;gap:var(--s4);min-width:0}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:var(--s4);box-shadow:var(--shadow)}
+.card h2{font-size:15px;margin:0 0 var(--s3);display:flex;align-items:center;gap:var(--s2)}
+label.lbl{display:block;font-weight:600;font-size:13px;margin-bottom:6px}
+.hint{color:var(--muted);font-size:13px;margin:6px 0 0}
+textarea,input[type=text],input[type=password],input[type=number],select{width:100%;border:1px solid var(--border);background:var(--bg);border-radius:var(--radius-s);padding:10px 12px;min-height:44px}
+textarea{resize:vertical;min-height:92px;font-size:14px}
+.row{display:flex;gap:var(--s2);align-items:center}
+.row > *{min-width:0}
+.grow{flex:1}
+.pl-head{display:flex;gap:var(--s2);align-items:center;margin-bottom:var(--s3)}
+.pl-head select{flex:1;font-weight:600}
+.meta{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;margin-bottom:var(--s2)}
+.search{margin-bottom:var(--s2)}
+.list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;max-height:calc(100vh - 420px);min-height:120px;overflow:auto}
+@media (max-width:1023px){.list{max-height:none}}
+.item{position:relative;display:grid;grid-template-columns:24px 88px minmax(0,1fr);gap:var(--s2);align-items:center;padding:6px;border-radius:var(--radius-s);border:1px solid transparent;cursor:pointer;transition:background .15s}
+.item:hover{background:var(--surface-2)}
+.item.active{background:var(--primary-soft);border-color:var(--primary)}
+.item.dragging{opacity:.4}
+.item.over{border-top:2px solid var(--primary)}
+.num{font-weight:700;color:var(--muted);text-align:center;font-variant-numeric:tabular-nums}
+.thumb{width:88px;aspect-ratio:16/9;border-radius:6px;background:var(--surface-2);object-fit:cover;display:block}
+.thumb.ph{display:grid;place-items:center;color:var(--muted)}
+.it-title{font-weight:600;font-size:14px;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;word-break:break-word}
+.it-sub{font-size:12px;color:var(--muted);display:flex;gap:6px;flex-wrap:wrap;align-items:center}
+.badge{font-size:11px;padding:1px 6px;border-radius:999px;background:var(--surface-2);font-weight:600}
+.badge.warn{background:var(--warn-soft);color:var(--warn)}
+.badge.watched{background:var(--primary-soft);color:var(--primary)}
+.acts{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:flex;gap:2px;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:2px;box-shadow:var(--shadow);opacity:0;pointer-events:none;transition:opacity .15s}
+.item:hover .acts,.item:focus-within .acts{opacity:1;pointer-events:auto}
+@media (hover:none){.acts{position:static;transform:none;opacity:1;pointer-events:auto;grid-column:2/-1;justify-self:end;box-shadow:none}}
+.acts .btn{width:32px;min-height:32px;padding:0}
+.acts .btn svg{width:16px;height:16px}
+.list-empty{color:var(--muted);text-align:center;padding:var(--s5) var(--s3);font-size:14px;border:1px dashed var(--border);border-radius:var(--radius-s)}
+
+/* ---------- Dialog / toast ---------- */
+dialog{border:1px solid var(--border);border-radius:var(--radius);background:var(--surface);color:var(--text);padding:0;max-width:min(560px,calc(100vw - 32px));width:100%;box-shadow:0 20px 60px rgb(0 0 0/.3)}
+dialog::backdrop{background:rgb(0 0 0/.5)}
+.dlg-h{display:flex;align-items:center;justify-content:space-between;padding:var(--s4) var(--s4) 0}
+.dlg-h h2{margin:0;font-size:18px}
+.dlg-b{padding:var(--s4);display:flex;flex-direction:column;gap:var(--s4)}
+.dlg-f{display:flex;gap:var(--s2);justify-content:flex-end;padding:0 var(--s4) var(--s4);flex-wrap:wrap}
+.keys{display:grid;grid-template-columns:auto 1fr;gap:8px 16px;align-items:center;font-size:14px}
+kbd{font-family:inherit;font-size:13px;font-weight:700;background:var(--surface-2);border:1px solid var(--border);border-bottom-width:3px;border-radius:6px;padding:1px 8px;white-space:nowrap}
+.chips{display:flex;gap:var(--s2);flex-wrap:wrap}
+.toast-wrap{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);z-index:9999;display:flex;flex-direction:column;gap:8px;align-items:center;pointer-events:none}
+.toast{pointer-events:auto;background:#1c1917;color:#fafaf9;padding:10px 16px;border-radius:10px;font-size:14px;display:flex;gap:12px;align-items:center;box-shadow:0 8px 24px rgb(0 0 0/.25);animation:tin .2s var(--ease)}
+.toast button{background:none;border:0;color:#5eead4;font-weight:700;cursor:pointer;min-height:32px}
+.toast.err{background:#7f1d1d}
+@keyframes tin{from{opacity:0;transform:translateY(8px)}}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:sp .7s linear infinite;display:inline-block}
+@keyframes sp{to{transform:rotate(360deg)}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <symbol id="i-play" viewBox="0 0 24 24"><path fill="currentColor" d="M8 5.5v13l11-6.5z"/></symbol>
+  <symbol id="i-pause" viewBox="0 0 24 24"><path fill="currentColor" d="M7 5h3.5v14H7zM13.5 5H17v14h-3.5z"/></symbol>
+  <symbol id="i-cam" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 8a1 1 0 011-1h3l2-3h6l2 3h3a1 1 0 011 1v11a1 1 0 01-1 1H4a1 1 0 01-1-1z"/><circle cx="12" cy="13" r="4" fill="none" stroke="currentColor" stroke-width="2"/></symbol>
+  <symbol id="i-prev" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M15 18l-6-6 6-6"/></symbol>
+  <symbol id="i-next" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M9 18l6-6-6-6"/></symbol>
+  <symbol id="i-pen" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M12 20h9M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-spot" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 2v3M12 19v3M2 12h3M19 12h3M4.9 4.9l2.1 2.1M17 17l2.1 2.1M4.9 19.1L7 17M17 7l2.1-2.1"/></symbol>
+  <symbol id="i-black" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="13" rx="2" fill="currentColor"/><path stroke="currentColor" stroke-width="2" d="M8 21h8"/></symbol>
+  <symbol id="i-timer" viewBox="0 0 24 24"><circle cx="12" cy="13" r="8" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M12 9v4l2.5 2M9 2h6"/></symbol>
+  <symbol id="i-full" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/></symbol>
+  <symbol id="i-ext" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M14 4h6v6M20 4l-9 9M18 14v5a1 1 0 01-1 1H5a1 1 0 01-1-1V7a1 1 0 011-1h5"/></symbol>
+  <symbol id="i-trash" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/></symbol>
+  <symbol id="i-edit" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M16.5 3.5a2.1 2.1 0 013 3L7 19l-4 1 1-4z"/></symbol>
+  <symbol id="i-up" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 15l6-6 6 6"/></symbol>
+  <symbol id="i-down" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" d="M6 9l6 6 6-6"/></symbol>
+  <symbol id="i-gear" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path fill="none" stroke="currentColor" stroke-width="2" d="M19.4 15a1.7 1.7 0 00.3 1.8l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.8-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.8.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.8 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.8l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.8.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.8-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.8V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/></symbol>
+  <symbol id="i-share" viewBox="0 0 24 24"><circle cx="18" cy="5" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="6" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="18" cy="19" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" d="M8.6 13.5l6.8 4M15.4 6.5l-6.8 4"/></symbol>
+  <symbol id="i-key" viewBox="0 0 24 24"><rect x="2" y="6" width="20" height="12" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" stroke-linecap="round" d="M6 10h.01M10 10h.01M14 10h.01M18 10h.01M7 14h10"/></symbol>
+  <symbol id="i-moon" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M21 12.8A9 9 0 1111.2 3a7 7 0 009.8 9.8z"/></symbol>
+  <symbol id="i-side" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="16" rx="2" fill="none" stroke="currentColor" stroke-width="2"/><path stroke="currentColor" stroke-width="2" d="M15 4v16"/></symbol>
+  <symbol id="i-folder" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round" d="M3 6a1 1 0 011-1h5l2 2h9a1 1 0 011 1v10a1 1 0 01-1 1H4a1 1 0 01-1-1z"/></symbol>
+  <symbol id="i-plus" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M12 5v14M5 12h14"/></symbol>
+  <symbol id="i-x" viewBox="0 0 24 24"><path stroke="currentColor" stroke-width="2.2" stroke-linecap="round" d="M6 6l12 12M18 6L6 18"/></symbol>
+  <symbol id="i-clear" viewBox="0 0 24 24"><path fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" d="M20 20H9L4 15l9.5-9.5a2 2 0 012.8 0l3.2 3.2a2 2 0 010 2.8L12 19"/></symbol>
+</svg>
+
+<header class="top">
+  <div class="brand">
+    <div class="brand-mark" aria-hidden="true"><svg width="20" height="20"><use href="#i-play"/></svg></div>
+    <h1>Chiếu Video Drive <small>Trình chiếu video dạy học từ Google Drive</small></h1>
+  </div>
+  <button class="btn ghost icon" id="bSide" aria-label="Ẩn/hiện danh sách (L)" title="Chế độ lớp học – ẩn danh sách (L)"><svg><use href="#i-side"/></svg></button>
+  <button class="btn ghost icon" id="bTheme" aria-label="Đổi giao diện sáng/tối" title="Sáng/tối"><svg><use href="#i-moon"/></svg></button>
+  <button class="btn ghost icon" id="bKeys" aria-label="Phím tắt (?)" title="Phím tắt (?)"><svg><use href="#i-key"/></svg></button>
+  <button class="btn ghost icon" id="bSettings" aria-label="Cài đặt" title="Cài đặt"><svg><use href="#i-gear"/></svg></button>
+</header>
+
+<main class="app">
+  <section class="stage-wrap" id="stageWrap" aria-label="Khung trình chiếu">
+    <div class="stage" id="stage">
+      <div class="empty" id="empty">
+        <div>
+          <h2>Dán link video Google Drive để bắt đầu</h2>
+          <p>Hỗ trợ link một video, nhiều video (mỗi dòng một link) hoặc cả thư mục. Video cần được chia sẻ “Bất kỳ ai có đường liên kết”.</p>
+          <div class="steps">
+            <div class="step"><b>1</b> Dán link vào ô bên cạnh</div>
+            <div class="step"><b>2</b> Bấm video để chiếu</div>
+            <div class="step"><b>F</b> Toàn màn hình · <b>→</b> Video tiếp</div>
+          </div>
+        </div>
+      </div>
+      <canvas id="draw" aria-hidden="true"></canvas>
+      <div class="spot" id="spot" aria-hidden="true"></div>
+      <div class="timer-chip" id="timerChip" role="timer" aria-live="off"></div>
+      <div class="flash" id="flash" aria-hidden="true"></div>
+      <div class="osd" id="osd" aria-live="polite"></div>
+      <div class="black" id="black" role="button" tabindex="-1" aria-label="Bấm để tắt màn đen">Tạm dừng – các em nhìn lên bảng</div>
+    </div>
+    <div class="bar" id="bar">
+      <button class="btn" id="bPrev" aria-label="Video trước (←)" title="Video trước (← hoặc PageUp)"><svg><use href="#i-prev"/></svg></button>
+      <button class="btn" id="bPlay" aria-label="Dừng / tiếp tục (Space)" title="Dừng / tiếp tục (Space hoặc K)"><svg><use href="#i-play"/></svg></button>
+      <div class="title" id="nowTitle" aria-live="polite">Chưa chọn video<small>—</small></div>
+      <button class="btn" id="bNext" aria-label="Video tiếp (→)" title="Video tiếp (→ hoặc PageDown)"><svg><use href="#i-next"/></svg></button>
+      <span class="sep" aria-hidden="true"></span>
+      <button class="btn" id="bDraw" aria-pressed="false" title="Bút vẽ lên video (D)"><svg><use href="#i-pen"/></svg><span class="label">Vẽ</span></button>
+      <span class="pens" id="pens">
+        <button class="pen" data-c="#ef4444" style="background:#ef4444" aria-label="Bút đỏ" aria-pressed="true"></button>
+        <button class="pen" data-c="#facc15" style="background:#facc15" aria-label="Bút vàng" aria-pressed="false"></button>
+        <button class="pen" data-c="#22d3ee" style="background:#22d3ee" aria-label="Bút xanh" aria-pressed="false"></button>
+        <button class="pen" data-c="#ffffff" style="background:#ffffff" aria-label="Bút trắng" aria-pressed="false"></button>
+        <button class="btn icon" id="bClear" aria-label="Xóa nét vẽ (C)" title="Xóa nét vẽ (C)"><svg><use href="#i-clear"/></svg></button>
+      </span>
+      <button class="btn" id="bSpot" aria-pressed="false" title="Đèn soi – làm nổi một vùng (S)"><svg><use href="#i-spot"/></svg><span class="label">Đèn soi</span></button>
+      <button class="btn" id="bBlack" aria-pressed="false" title="Màn đen (B hoặc .)"><svg><use href="#i-black"/></svg><span class="label">Màn đen</span></button>
+      <button class="btn" id="bTimer" title="Hẹn giờ (T)"><svg><use href="#i-timer"/></svg><span class="label">Hẹn giờ</span></button>
+      <button class="btn" id="bShot" title="Chụp màn hình nhanh (P)"><svg><use href="#i-cam"/></svg><span class="label">Chụp</span></button>
+      <button class="btn icon" id="bOpen" aria-label="Mở trên Google Drive" title="Mở trên Google Drive"><svg><use href="#i-ext"/></svg></button>
+      <button class="btn primary" id="bFull" title="Toàn màn hình (F)"><svg><use href="#i-full"/></svg><span class="label">Toàn màn hình</span></button>
+    </div>
+  </section>
+
+  <aside class="side" aria-label="Danh sách video">
+    <div class="card">
+      <h2><svg width="18" height="18"><use href="#i-plus"/></svg>Thêm video</h2>
+      <label class="lbl" for="links">Link video hoặc thư mục Google Drive</label>
+      <textarea id="links" placeholder="https://drive.google.com/file/d/…&#10;Bài 2 | https://drive.google.com/file/d/…&#10;https://drive.google.com/drive/folders/…"></textarea>
+      <p class="hint">Mỗi dòng một link. Muốn đặt tên luôn, viết <b>Tên | link</b>.</p>
+      <div class="row" style="margin-top:12px">
+        <button class="btn primary grow" id="bAdd"><svg><use href="#i-plus"/></svg>Thêm vào danh sách</button>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="pl-head">
+        <label class="sr" for="plSel">Chọn danh sách bài học</label>
+        <select id="plSel"></select>
+        <button class="btn icon" id="bPlNew" aria-label="Tạo danh sách mới" title="Tạo danh sách mới"><svg><use href="#i-plus"/></svg></button>
+        <button class="btn icon" id="bPlRen" aria-label="Đổi tên danh sách" title="Đổi tên danh sách"><svg><use href="#i-edit"/></svg></button>
+        <button class="btn icon" id="bShare" aria-label="Chia sẻ, xuất, nhập" title="Chia sẻ / Xuất / Nhập"><svg><use href="#i-share"/></svg></button>
+      </div>
+      <div class="meta"><span id="plCount">0 video</span><span id="plDur"></span></div>
+      <label class="sr" for="q">Tìm video</label>
+      <input type="text" id="q" class="search" placeholder="Tìm trong danh sách…" autocomplete="off">
+      <ul class="list" id="list"></ul>
+    </div>
+  </aside>
+</main>
+
+<!-- Settings -->
+<dialog id="dSettings" aria-labelledby="hSet">
+  <form method="dialog">
+    <div class="dlg-h"><h2 id="hSet">Cài đặt</h2><button class="btn ghost icon" value="x" aria-label="Đóng"><svg><use href="#i-x"/></svg></button></div>
+    <div class="dlg-b">
+      <div>
+        <label class="lbl" for="apiKey">Khóa Google API (tùy chọn)</label>
+        <input type="password" id="apiKey" placeholder="AIza…" autocomplete="off">
+        <p class="hint">Có khóa, app tự tách thư mục thành từng video, lấy đúng tên file, thời lượng và sắp xếp theo số bài (Bài 2 trước Bài 10). Không có khóa, thư mục vẫn mở được dạng lưới. Có khóa, video còn phát bằng trình phát riêng của app nên phím Space dừng/tiếp và tua được. Khóa chỉ lưu trên máy này, không nằm trong link chia sẻ.</p>
+        <p class="hint">Tạo khóa: console.cloud.google.com → APIs &amp; Services → bật <b>Google Drive API</b> → Credentials → Create API key (nên giới hạn khóa cho Drive API).</p>
+      </div>
+      <label class="row"><input type="checkbox" id="optAutoNext" style="width:20px;height:20px"> <span>Khi bấm “Video tiếp” ở video cuối, quay lại video đầu</span></label>
+      <label class="row"><input type="checkbox" id="optClearOnChange" style="width:20px;height:20px" checked> <span>Tự xóa nét vẽ khi chuyển video</span></label>
+    </div>
+    <div class="dlg-f"><button class="btn primary" value="save" id="bSaveSet">Lưu</button></div>
+  </form>
+</dialog>
+
+<!-- Keys -->
+<dialog id="dKeys" aria-labelledby="hKeys">
+  <form method="dialog">
+    <div class="dlg-h"><h2 id="hKeys">Phím tắt</h2><button class="btn ghost icon" aria-label="Đóng"><svg><use href="#i-x"/></svg></button></div>
+    <div class="dlg-b">
+      <div class="keys">
+        <span><kbd>←</kbd> <kbd>→</kbd></span><span>Video trước / tiếp (bút trình chiếu: <kbd>PageUp</kbd> <kbd>PageDown</kbd>)</span>
+        <span><kbd>Space</kbd> hoặc <kbd>K</kbd></span><span>Dừng / tiếp tục video</span>
+        <span><kbd>Shift</kbd>+<kbd>←</kbd> <kbd>→</kbd></span><span>Tua lùi / tới 10 giây</span>
+        <span><kbd>F</kbd></span><span>Toàn màn hình (giữ thanh công cụ)</span>
+        <span><kbd>D</kbd> · <kbd>C</kbd></span><span>Bật/tắt bút vẽ · Xóa nét vẽ</span>
+        <span><kbd>S</kbd></span><span>Đèn soi – <kbd>[</kbd> <kbd>]</kbd> hoặc lăn chuột để thu nhỏ / phóng to</span>
+        <span><kbd>B</kbd> hoặc <kbd>.</kbd></span><span>Màn đen (tự dừng video, tắt màn đen thì phát tiếp)</span>
+        <span><kbd>T</kbd></span><span>Hẹn giờ</span>
+        <span><kbd>P</kbd></span><span>Chụp khung video (tự tải ảnh về + sao chép để dán)</span>
+        <span><kbd>L</kbd></span><span>Ẩn/hiện danh sách</span>
+        <span><kbd>1</kbd>…<kbd>9</kbd></span><span>Chiếu video số 1…9</span>
+        <span><kbd>Esc</kbd></span><span>Tắt công cụ đang bật</span>
+      </div>
+      <p class="hint">Có khóa Google API (Cài đặt): video phát bằng trình phát của app, Space dừng/tiếp ngay, tua được. Không có khóa: video phát bằng trình phát Drive – bấm Space lần đầu app chuyển phím sang trình phát Drive, bấm Space lần nữa để dừng/tiếp.</p>
+    </div>
+  </form>
+</dialog>
+
+<!-- Timer -->
+<dialog id="dTimer" aria-labelledby="hTimer">
+  <form method="dialog">
+    <div class="dlg-h"><h2 id="hTimer">Hẹn giờ</h2><button class="btn ghost icon" aria-label="Đóng"><svg><use href="#i-x"/></svg></button></div>
+    <div class="dlg-b">
+      <div class="chips" id="tChips">
+        <button class="btn" value="1" data-m="1">1 phút</button>
+        <button class="btn" value="3" data-m="3">3 phút</button>
+        <button class="btn" value="5" data-m="5">5 phút</button>
+        <button class="btn" value="10" data-m="10">10 phút</button>
+        <button class="btn" value="15" data-m="15">15 phút</button>
+      </div>
+      <div class="row">
+        <div class="grow"><label class="lbl" for="tMin">Số phút khác</label><input type="number" id="tMin" min="0.5" max="180" step="0.5" value="2"></div>
+        <button class="btn primary" value="custom" style="align-self:flex-end">Bắt đầu</button>
+      </div>
+    </div>
+    <div class="dlg-f"><button class="btn" value="stop" id="tStop">Tắt hẹn giờ</button></div>
+  </form>
+</dialog>
+
+<!-- Share -->
+<dialog id="dShare" aria-labelledby="hShare">
+  <form method="dialog">
+    <div class="dlg-h"><h2 id="hShare">Chia sẻ danh sách</h2><button class="btn ghost icon" aria-label="Đóng"><svg><use href="#i-x"/></svg></button></div>
+    <div class="dlg-b">
+      <div>
+        <label class="lbl" for="shareUrl">Link mở đúng danh sách này</label>
+        <div class="row"><input type="text" id="shareUrl" readonly class="grow"><button class="btn primary" type="button" id="bCopy">Sao chép</button></div>
+        <p class="hint">Gửi cho đồng nghiệp hoặc học sinh. Hoạt động khi file app được đưa lên web (GitHub Pages…); với file mở trên máy, dùng Xuất/Nhập.</p>
+      </div>
+      <div class="row">
+        <button class="btn grow" type="button" id="bExport">Xuất file .json</button>
+        <button class="btn grow" type="button" id="bImport">Nhập file .json</button>
+        <input type="file" id="fImport" accept=".json,application/json" hidden>
+      </div>
+      <button class="btn" type="button" id="bPlDel" style="color:var(--danger)"><svg><use href="#i-trash"/></svg>Xóa danh sách này</button>
+    </div>
+  </form>
+</dialog>
+
+<div class="toast-wrap" id="toasts" aria-live="polite"></div>
+
+<script>
+(() => {
+'use strict';
+const $ = s => document.querySelector(s);
+const LS = 'chieuVideoDrive.v1';
+const collator = new Intl.Collator('vi', {numeric:true, sensitivity:'base'});
+const uid = () => Math.random().toString(36).slice(2, 10);
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+
+/* ---------------- State ---------------- */
+let S = load() || {
+  playlists:[{id:uid(), name:'Bài học của tôi', items:[], last:-1}],
+  current:null, apiKey:'', loopNext:false, clearOnChange:true, theme:''
+};
+if (!S.current || !S.playlists.find(p => p.id === S.current)) S.current = S.playlists[0].id;
+let curIdx = -1;
+
+function load(){ try { return JSON.parse(localStorage.getItem(LS)); } catch(e){ return null; } }
+function save(){ try { localStorage.setItem(LS, JSON.stringify(S)); } catch(e){} }
+const PL = () => S.playlists.find(p => p.id === S.current);
+
+/* ---------------- Toast ---------------- */
+function toast(msg, opts = {}){
+  const t = document.createElement('div');
+  t.className = 'toast' + (opts.err ? ' err' : '');
+  t.innerHTML = `<span>${esc(msg)}</span>`;
+  if (opts.action){
+    const b = document.createElement('button'); b.textContent = opts.action;
+    b.addEventListener('click', () => { opts.onAction(); t.remove(); });
+    t.appendChild(b);
+  }
+  $('#toasts').appendChild(t);
+  setTimeout(() => t.remove(), opts.ms || (opts.action ? 6000 : 2800));
+}
+
+/* ---------------- Drive helpers ---------------- */
+function parseLine(line){
+  line = line.trim(); if (!line) return null;
+  let title = '';
+  const bar = line.lastIndexOf('|');
+  if (bar > -1 && /https?:|^[\w-]{20,}$/.test(line.slice(bar + 1).trim())) { title = line.slice(0, bar).trim(); line = line.slice(bar + 1).trim(); }
+  else {
+    const m = line.match(/^(.*?)\s*(https?:\/\/\S+)$/);
+    if (m && m[1]) { title = m[1].replace(/[:\-–—]\s*$/, '').trim(); line = m[2]; }
+  }
+  let m;
+  if ((m = line.match(/\/folders\/([\w-]{10,})/))) return {type:'folder', driveId:m[1], title};
+  if ((m = line.match(/\/file\/d\/([\w-]{10,})/))) return {type:'video', driveId:m[1], title};
+  if ((m = line.match(/[?&]id=([\w-]{10,})/))) return {type:/folderview/.test(line) ? 'folder' : 'video', driveId:m[1], title};
+  if (/^[\w-]{20,}$/.test(line)) return {type:'video', driveId:line, title};
+  return {bad:line};
+}
+const embedUrl = it => it.type === 'folder'
+  ? `https://drive.google.com/embeddedfolderview?id=${it.driveId}#grid`
+  : `https://drive.google.com/file/d/${it.driveId}/preview`;
+const openUrl = it => it.type === 'folder'
+  ? `https://drive.google.com/drive/folders/${it.driveId}`
+  : `https://drive.google.com/file/d/${it.driveId}/view`;
+const thumbUrl = id => `https://drive.google.com/thumbnail?id=${id}&sz=w320`;
+const fmtDur = ms => { if (!ms) return ''; const s = Math.round(ms/1000), h = Math.floor(s/3600), m = Math.floor(s%3600/60), x = s%60;
+  return (h ? h + ':' + String(m).padStart(2,'0') : m) + ':' + String(x).padStart(2,'0'); };
+
+const API = 'https://www.googleapis.com/drive/v3/files';
+async function apiGet(url){
+  const r = await fetch(url);
+  if (!r.ok){
+    let msg = 'Lỗi ' + r.status;
+    if (r.status === 400 || r.status === 403) msg = 'Khóa API không hợp lệ hoặc chưa bật Google Drive API';
+    if (r.status === 404) msg = 'Không tìm thấy – thư mục/video chưa chia sẻ công khai?';
+    throw new Error(msg);
+  }
+  return r.json();
+}
+async function fileMeta(id){
+  return apiGet(`${API}/${id}?key=${encodeURIComponent(S.apiKey)}&supportsAllDrives=true&fields=id,name,mimeType,videoMediaMetadata(durationMillis)`);
+}
+async function listFolder(id, prefix = '', depth = 0){
+  let out = [], token = '';
+  do {
+    const q = encodeURIComponent(`'${id}' in parents and trashed=false`);
+    const d = await apiGet(`${API}?q=${q}&key=${encodeURIComponent(S.apiKey)}&pageSize=1000&supportsAllDrives=true&includeItemsFromAllDrives=true&fields=nextPageToken,files(id,name,mimeType,videoMediaMetadata(durationMillis))${token ? '&pageToken=' + token : ''}`);
+    const files = (d.files || []).sort((a,b) => collator.compare(a.name, b.name));
+    for (const f of files){
+      if (f.mimeType === 'application/vnd.google-apps.folder' && depth < 3){
+        out = out.concat(await listFolder(f.id, prefix + f.name + ' › ', depth + 1));
+      } else if ((f.mimeType || '').startsWith('video/')){
+        out.push({id:uid(), type:'video', driveId:f.id, title:prefix + f.name.replace(/\.(mp4|mov|mkv|webm|avi|m4v)$/i, ''), dur:+(f.videoMediaMetadata?.durationMillis || 0)});
+      }
+    }
+    token = d.nextPageToken || '';
+  } while (token);
+  return out;
+}
+
+/* ---------------- Add links ---------------- */
+async function addLinks(){
+  const raw = $('#links').value;
+  const parsed = raw.split(/\n+/).map(parseLine).filter(Boolean);
+  const bad = parsed.filter(p => p.bad);
+  const good = parsed.filter(p => !p.bad);
+  if (!good.length){ toast(bad.length ? 'Không nhận ra link Google Drive. Kiểm tra lại link.' : 'Thầy hãy dán ít nhất một link.', {err:true}); $('#links').focus(); return; }
+  const btn = $('#bAdd'); btn.disabled = true; const old = btn.innerHTML; btn.innerHTML = '<span class="spin"></span> Đang thêm…';
+  const pl = PL(); const before = pl.items.length; let n = 0;
+  const known = new Set(pl.items.map(i => i.driveId));
+  for (const p of good){
+    if (p.type === 'folder' && S.apiKey){
+      try {
+        const vids = await listFolder(p.driveId);
+        if (!vids.length){ toast('Thư mục không có video nào (hoặc chưa chia sẻ).', {err:true}); continue; }
+        vids.forEach(v => { if (!known.has(v.driveId)){ pl.items.push(v); known.add(v.driveId); n++; }});
+        continue;
+      } catch(e){ toast(e.message + ' – thêm thư mục ở dạng lưới.', {err:true}); }
+    }
+    if (known.has(p.driveId)) continue;
+    const it = {id:uid(), type:p.type, driveId:p.driveId, title:p.title, dur:0};
+    if (p.type === 'video' && S.apiKey && !p.title){
+      try { const m = await fileMeta(p.driveId); it.title = m.name.replace(/\.(mp4|mov|mkv|webm|avi|m4v)$/i,''); it.dur = +(m.videoMediaMetadata?.durationMillis || 0); } catch(e){}
+    }
+    if (!it.title) it.title = p.type === 'folder' ? 'Thư mục video' : 'Video ' + (pl.items.length + 1);
+    pl.items.push(it); known.add(p.driveId); n++;
+  }
+  btn.disabled = false; btn.innerHTML = old;
+  save(); renderList();
+  if (n){ $('#links').value = ''; toast(`Đã thêm ${n} mục${bad.length ? ` · bỏ qua ${bad.length} dòng không phải link Drive` : ''}`); if (curIdx < 0) play(before); }
+  else toast('Các link này đã có trong danh sách.');
+}
+
+/* ---------------- Render list ---------------- */
+function renderPlSel(){
+  $('#plSel').innerHTML = S.playlists.map(p => `<option value="${p.id}" ${p.id === S.current ? 'selected' : ''}>${esc(p.name)}</option>`).join('');
+}
+function renderList(){
+  const pl = PL(), q = $('#q').value.trim().toLowerCase(), ul = $('#list');
+  const total = pl.items.reduce((a,i) => a + (i.dur || 0), 0);
+  $('#plCount').textContent = `${pl.items.length} mục`;
+  $('#plDur').textContent = total ? 'Tổng ' + fmtDur(total) : '';
+  if (!pl.items.length){ ul.innerHTML = '<li class="list-empty">Danh sách trống.<br>Dán link Drive ở ô phía trên rồi bấm “Thêm”.</li>'; return; }
+  const rows = pl.items.map((it, i) => ({it, i})).filter(({it}) => !q || it.title.toLowerCase().includes(q));
+  if (!rows.length){ ul.innerHTML = '<li class="list-empty">Không có video khớp từ khóa.</li>'; return; }
+  ul.innerHTML = rows.map(({it, i}) => `
+    <li class="item${i === curIdx ? ' active' : ''}" data-i="${i}" draggable="${q ? 'false' : 'true'}" tabindex="0" aria-current="${i === curIdx}">
+      <span class="num">${i + 1}</span>
+      ${it.type === 'folder'
+        ? `<span class="thumb ph"><svg width="26" height="26"><use href="#i-folder"/></svg></span>`
+        : `<img class="thumb" loading="lazy" width="88" height="50" alt="" src="${thumbUrl(it.driveId)}" data-i="${i}">`}
+      <span style="min-width:0">
+        <span class="it-title">${esc(it.title)}</span>
+        <span class="it-sub">${it.type === 'folder' ? '<span class="badge">Thư mục</span>' : ''}${it.dur ? `<span>${fmtDur(it.dur)}</span>` : ''}${it.seen ? '<span class="badge watched">Đã chiếu</span>' : ''}<span class="warn-slot"></span></span>
+      </span>
+      <span class="acts">
+        <button class="btn ghost" data-act="up" aria-label="Đưa lên"><svg><use href="#i-up"/></svg></button>
+        <button class="btn ghost" data-act="down" aria-label="Đưa xuống"><svg><use href="#i-down"/></svg></button>
+        <button class="btn ghost" data-act="ren" aria-label="Đổi tên"><svg><use href="#i-edit"/></svg></button>
+        <button class="btn ghost" data-act="del" aria-label="Xóa"><svg><use href="#i-trash"/></svg></button>
+      </span>
+    </li>`).join('');
+  ul.querySelectorAll('img.thumb').forEach(img => img.addEventListener('error', () => {
+    const li = img.closest('.item');
+    const ph = document.createElement('span'); ph.className = 'thumb ph'; ph.innerHTML = '<svg width="22" height="22"><use href="#i-play"/></svg>';
+    img.replaceWith(ph);
+    const w = li.querySelector('.warn-slot');
+    if (w) w.outerHTML = '<span class="badge warn" title="Có thể video chưa chia sẻ công khai hoặc Drive đang xử lý">Kiểm tra quyền chia sẻ</span>';
+  }, {once:true}));
+}
+
+/* ---------------- Player ---------------- */
+let frame = null;
+function play(i){
+  const pl = PL();
+  if (i < 0 || i >= pl.items.length) return;
+  curIdx = i; pl.last = i;
+  const it = pl.items[i]; it.seen = true; save();
+  $('#empty').hidden = true;
+  if (frame){ frame.remove(); frame = null; }
+  if (it.type === 'video' && S.apiKey && !it.noNative){
+    frame = document.createElement('video');
+    frame.controls = true; frame.playsInline = true; frame.preload = 'auto';
+    if (!it.noCors) frame.crossOrigin = 'anonymous';
+    frame.src = `${API}/${it.driveId}?alt=media&key=${encodeURIComponent(S.apiKey)}`;
+    frame.addEventListener('error', () => {
+      if (!it.noCors){ it.noCors = true; save(); if (PL().items[curIdx] === it) play(curIdx); return; }
+      it.noNative = true; save();
+      toast('Video này không phát trực tiếp được, chuyển sang trình phát Drive.');
+      if (PL().items[curIdx] === it) play(curIdx);
+    }, {once:true});
+    frame.addEventListener('play', syncPlayBtn); frame.addEventListener('pause', syncPlayBtn);
+  } else {
+    frame = document.createElement('iframe');
+    frame.allow = 'autoplay; fullscreen; picture-in-picture';
+    frame.allowFullscreen = true;
+    frame.referrerPolicy = 'strict-origin-when-cross-origin';
+    frame.src = embedUrl(it);
+  }
+  frame.title = it.title;
+  $('#stage').prepend(frame);
+  syncPlayBtn();
+  $('#stage').querySelector('.folder-hint')?.remove();
+  if (it.type === 'folder'){
+    const h = document.createElement('div'); h.className = 'folder-hint';
+    h.textContent = 'Đang xem thư mục dạng lưới. Thêm khóa Google API trong Cài đặt để app tự tách thành từng video.';
+    $('#stage').appendChild(h); setTimeout(() => h.remove(), 9000);
+  }
+  $('#nowTitle').innerHTML = `${esc(it.title)}<small>${i + 1} / ${pl.items.length}${it.dur ? ' · ' + fmtDur(it.dur) : ''}</small>`;
+  $('#bPrev').disabled = i === 0 && !S.loopNext;
+  $('#bNext').disabled = i === pl.items.length - 1 && !S.loopNext;
+  if (S.clearOnChange) clearDraw();
+  renderList();
+  document.querySelector(`.item[data-i="${i}"]`)?.scrollIntoView({block:'nearest'});
+}
+/* ---------------- Play / pause ---------------- */
+const isNative = () => frame && frame.tagName === 'VIDEO';
+let osdT;
+function osd(text){ const o = $('#osd'); o.textContent = text; o.classList.add('on'); clearTimeout(osdT); osdT = setTimeout(() => o.classList.remove('on'), 900); }
+function syncPlayBtn(){
+  const playing = isNative() && !frame.paused;
+  $('#bPlay').querySelector('use').setAttribute('href', playing ? '#i-pause' : '#i-play');
+}
+function togglePlay(){
+  if (!frame){ toast('Chưa chọn video.'); return; }
+  if (isNative()){
+    if (frame.paused){ frame.play().catch(() => {}); osd('▶ Tiếp tục'); }
+    else { frame.pause(); osd('⏸ Dừng'); }
+    return;
+  }
+  frame.focus();
+  toast('Đã chuyển phím sang trình phát Drive – bấm Space lần nữa để dừng/tiếp tục.', {ms:4000});
+}
+function seek(sec){
+  if (!isNative()){ toast('Tua bằng phím cần khóa Google API (Cài đặt).'); return; }
+  frame.currentTime = Math.max(0, Math.min(frame.duration || 1e9, frame.currentTime + sec));
+  osd(sec > 0 ? `+${sec} giây` : `${sec} giây`);
+}
+$('#bPlay').addEventListener('click', togglePlay);
+
+function step(d){
+  const n = PL().items.length; if (!n) return;
+  let i = curIdx < 0 ? 0 : curIdx + d;
+  if (S.loopNext) i = (i + n) % n;
+  if (i < 0 || i >= n){ toast(d > 0 ? 'Đây là video cuối.' : 'Đây là video đầu.'); return; }
+  play(i);
+}
+
+/* ---------------- List interactions ---------------- */
+let undo = null;
+$('#list').addEventListener('click', e => {
+  const li = e.target.closest('.item'); if (!li) return;
+  const i = +li.dataset.i, pl = PL(), act = e.target.closest('[data-act]')?.dataset.act;
+  if (!act){ play(i); return; }
+  if (act === 'up' && i > 0) move(i, i - 1);
+  if (act === 'down' && i < pl.items.length - 1) move(i, i + 1);
+  if (act === 'ren'){
+    const t = prompt('Tên mới:', pl.items[i].title);
+    if (t && t.trim()){ pl.items[i].title = t.trim(); save(); renderList(); if (i === curIdx) play(i); }
+  }
+  if (act === 'del'){
+    const [rm] = pl.items.splice(i, 1);
+    if (curIdx === i){ curIdx = -1; if (frame){ frame.remove(); frame = null; } $('#empty').hidden = false; $('#nowTitle').innerHTML = 'Chưa chọn video<small>—</small>'; }
+    else if (curIdx > i) curIdx--;
+    undo = {pl, i, rm}; save(); renderList();
+    toast(`Đã xóa “${rm.title}”`, {action:'Hoàn tác', onAction:() => { undo.pl.items.splice(undo.i, 0, undo.rm); if (curIdx >= undo.i) curIdx++; save(); renderList(); }});
+  }
+});
+$('#list').addEventListener('keydown', e => {
+  const li = e.target.closest('.item'); if (!li || e.target !== li) return;
+  if (e.key === 'Enter' || e.key === ' '){ e.preventDefault(); e.stopPropagation(); play(+li.dataset.i); }
+});
+function move(a, b){
+  const items = PL().items, [x] = items.splice(a, 1); items.splice(b, 0, x);
+  if (curIdx === a) curIdx = b; else if (a < curIdx && b >= curIdx) curIdx--; else if (a > curIdx && b <= curIdx) curIdx++;
+  save(); renderList();
+  if (curIdx >= 0) $('#nowTitle').querySelector('small').textContent = `${curIdx + 1} / ${items.length}`;
+}
+let dragFrom = -1;
+$('#list').addEventListener('dragstart', e => { const li = e.target.closest('.item'); if (!li) return; dragFrom = +li.dataset.i; li.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; });
+$('#list').addEventListener('dragover', e => { const li = e.target.closest('.item'); if (!li || dragFrom < 0) return; e.preventDefault(); document.querySelectorAll('.item.over').forEach(x => x.classList.remove('over')); li.classList.add('over'); });
+$('#list').addEventListener('drop', e => { const li = e.target.closest('.item'); if (!li || dragFrom < 0) return; e.preventDefault(); const to = +li.dataset.i; if (to !== dragFrom) move(dragFrom, to); dragFrom = -1; });
+$('#list').addEventListener('dragend', () => { dragFrom = -1; renderList(); });
+
+/* ---------------- Playlists ---------------- */
+$('#plSel').addEventListener('change', e => { S.current = e.target.value; save(); curIdx = -1; renderList(); resume(); });
+$('#bPlNew').addEventListener('click', () => {
+  const n = prompt('Tên danh sách mới (ví dụ: Toán 11 – Chương 1):'); if (!n || !n.trim()) return;
+  const p = {id:uid(), name:n.trim(), items:[], last:-1}; S.playlists.push(p); S.current = p.id; save(); renderPlSel(); curIdx = -1; renderList(); resetStage(); $('#links').focus();
+});
+$('#bPlRen').addEventListener('click', () => { const p = PL(); const n = prompt('Đổi tên danh sách:', p.name); if (n && n.trim()){ p.name = n.trim(); save(); renderPlSel(); } });
+$('#bPlDel').addEventListener('click', () => {
+  if (S.playlists.length === 1){ toast('Cần giữ ít nhất một danh sách.'); return; }
+  const p = PL(); if (!confirm(`Xóa danh sách “${p.name}” (${p.items.length} mục)?`)) return;
+  const idx = S.playlists.indexOf(p); S.playlists.splice(idx, 1); S.current = S.playlists[0].id; save(); renderPlSel(); curIdx = -1; renderList(); resetStage(); $('#dShare').close();
+  toast(`Đã xóa danh sách “${p.name}”`, {action:'Hoàn tác', onAction:() => { S.playlists.splice(idx, 0, p); S.current = p.id; save(); renderPlSel(); renderList(); }});
+});
+function resetStage(){ if (frame){ frame.remove(); frame = null; } $('#empty').hidden = false; $('#nowTitle').innerHTML = 'Chưa chọn video<small>—</small>'; }
+function resume(){ resetStage(); const p = PL(); if (p.last >= 0 && p.last < p.items.length) play(p.last); }
+
+/* ---------------- Share / export / import ---------------- */
+const b64e = s => btoa(String.fromCharCode(...new TextEncoder().encode(s))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+const b64d = s => new TextDecoder().decode(Uint8Array.from(atob(s.replace(/-/g,'+').replace(/_/g,'/')), c => c.charCodeAt(0)));
+const packPl = p => ({n:p.name, i:p.items.map(it => [it.driveId, it.title, it.type === 'folder' ? 1 : 0, it.dur || 0])});
+function unpackPl(o){
+  if (!o || !Array.isArray(o.i)) throw new Error('bad');
+  return {id:uid(), name:String(o.n || 'Danh sách nhập'), last:-1, items:o.i.filter(a => /^[\w-]{10,}$/.test(a[0])).map(a => ({id:uid(), driveId:a[0], title:String(a[1] || 'Video'), type:a[2] ? 'folder' : 'video', dur:+a[3] || 0}))};
+}
+function importPl(p){ S.playlists.push(p); S.current = p.id; save(); renderPlSel(); curIdx = -1; renderList(); resume(); toast(`Đã mở danh sách “${p.name}” (${p.items.length} mục)`); }
+$('#bShare').addEventListener('click', () => {
+  const base = location.href.split('#')[0];
+  $('#shareUrl').value = base + '#pl=' + b64e(JSON.stringify(packPl(PL())));
+  $('#dShare').showModal();
+});
+$('#bCopy').addEventListener('click', async () => {
+  try { await navigator.clipboard.writeText($('#shareUrl').value); toast('Đã sao chép link'); }
+  catch(e){ $('#shareUrl').select(); document.execCommand('copy'); toast('Đã sao chép link'); }
+});
+$('#bExport').addEventListener('click', () => {
+  const p = PL(), blob = new Blob([JSON.stringify(packPl(p), null, 1)], {type:'application/json'});
+  const a = document.createElement('a'); a.href = URL.createObjectURL(blob);
+  a.download = p.name.replace(/[\\/:*?"<>|]/g, '_') + '.json'; a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+});
+$('#bImport').addEventListener('click', () => $('#fImport').click());
+$('#fImport').addEventListener('change', async e => {
+  const f = e.target.files[0]; if (!f) return;
+  try { importPl(unpackPl(JSON.parse(await f.text()))); $('#dShare').close(); }
+  catch(err){ toast('File không đúng định dạng danh sách.', {err:true}); }
+  e.target.value = '';
+});
+function readHash(){
+  const m = location.hash.match(/pl=([\w-]+)/); if (!m) return;
+  try { importPl(unpackPl(JSON.parse(b64d(m[1])))); } catch(e){ toast('Link chia sẻ bị lỗi hoặc không đầy đủ.', {err:true}); }
+  history.replaceState(null, '', location.pathname + location.search);
+}
+
+/* ---------------- Drawing ---------------- */
+const cv = $('#draw'), ctx = cv.getContext('2d');
+let penColor = '#ef4444', drawing = false, last = null;
+function sizeCanvas(){
+  const r = cv.getBoundingClientRect(), dpr = devicePixelRatio || 1;
+  const img = cv.width ? ctx.getImageData(0, 0, cv.width, cv.height) : null;
+  cv.width = Math.round(r.width * dpr); cv.height = Math.round(r.height * dpr);
+  ctx.setTransform(dpr, 0, 0, dpr, 0, 0); ctx.lineCap = 'round'; ctx.lineJoin = 'round';
+  if (img) ctx.putImageData(img, 0, 0);
+}
+new ResizeObserver(sizeCanvas).observe($('#stage'));
+const pos = e => { const r = cv.getBoundingClientRect(); return {x:e.clientX - r.left, y:e.clientY - r.top}; };
+cv.addEventListener('pointerdown', e => { drawing = true; last = pos(e); cv.setPointerCapture(e.pointerId); });
+cv.addEventListener('pointermove', e => {
+  if (!drawing) return; const p = pos(e);
+  ctx.strokeStyle = penColor; ctx.lineWidth = Math.max(3, cv.clientWidth / 260) * (e.pressure ? .6 + e.pressure : 1);
+  ctx.beginPath(); ctx.moveTo(last.x, last.y); ctx.lineTo(p.x, p.y); ctx.stroke(); last = p;
+});
+['pointerup','pointercancel'].forEach(t => cv.addEventListener(t, () => { drawing = false; }));
+function clearDraw(){ ctx.save(); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0, 0, cv.width, cv.height); ctx.restore(); }
+$('#pens').addEventListener('click', e => {
+  const b = e.target.closest('.pen'); if (!b) return; penColor = b.dataset.c;
+  $('#pens').querySelectorAll('.pen').forEach(x => x.setAttribute('aria-pressed', x === b));
+});
+$('#bClear').addEventListener('click', clearDraw);
+
+/* ---------------- Tools ---------------- */
+function setTool(name){
+  const cur = document.body.classList.contains('tool-' + name);
+  document.body.classList.remove('tool-draw', 'tool-spot');
+  $('#bDraw').setAttribute('aria-pressed', 'false'); $('#bSpot').setAttribute('aria-pressed', 'false');
+  if (name === 'spot' && !cur && !spotR) setSpotR($('#stage').clientWidth * .24);
+  if (name && !cur){ document.body.classList.add('tool-' + name); $(name === 'draw' ? '#bDraw' : '#bSpot').setAttribute('aria-pressed', 'true'); }
+}
+$('#bDraw').addEventListener('click', () => setTool('draw'));
+$('#bSpot').addEventListener('click', () => setTool('spot'));
+const spot = $('#spot'); let spotR = 0;
+function setSpotR(r){
+  const w = $('#stage').clientWidth || 800;
+  spotR = Math.round(Math.min(w * .8, Math.max(80, r)));
+  spot.style.setProperty('--r', spotR + 'px');
+}
+function spotSize(f){ if (!document.body.classList.contains('tool-spot')) setTool('spot'); setSpotR((spotR || 260) * f); }
+spot.addEventListener('pointermove', e => { const r = spot.getBoundingClientRect(); spot.style.setProperty('--x', (e.clientX - r.left) + 'px'); spot.style.setProperty('--y', (e.clientY - r.top) + 'px'); });
+spot.addEventListener('wheel', e => { e.preventDefault(); setSpotR(spotR - e.deltaY * .5); }, {passive:false});
+let resumeAfterBlack = false;
+function toggleBlack(){
+  const on = $('#black').classList.toggle('on'); $('#bBlack').setAttribute('aria-pressed', on);
+  if (isNative()){
+    if (on){ resumeAfterBlack = !frame.paused; frame.pause(); }
+    else if (resumeAfterBlack){ frame.play().catch(() => {}); resumeAfterBlack = false; }
+  }
+}
+$('#bBlack').addEventListener('click', toggleBlack);
+$('#black').addEventListener('click', toggleBlack);
+
+/* Timer */
+let tEnd = 0, tInt = null, beeped = false;
+function startTimer(min){
+  tEnd = Date.now() + min * 60000; beeped = false; clearInterval(tInt);
+  const chip = $('#timerChip'); chip.className = 'timer-chip on';
+  const tick = () => {
+    const left = Math.max(0, tEnd - Date.now()), s = Math.ceil(left / 1000);
+    chip.textContent = `${Math.floor(s/60)}:${String(s%60).padStart(2,'0')}`;
+    chip.classList.toggle('warn', s <= 30 && s > 0);
+    if (!left){ chip.classList.add('done'); chip.textContent = 'Hết giờ!'; if (!beeped){ beeped = true; beep(); } clearInterval(tInt); }
+  };
+  tick(); tInt = setInterval(tick, 250);
+}
+function stopTimer(){ clearInterval(tInt); $('#timerChip').className = 'timer-chip'; }
+function beep(){
+  try { const a = new (window.AudioContext || window.webkitAudioContext)();
+    [0, .35, .7].forEach(t => { const o = a.createOscillator(), g = a.createGain(); o.frequency.value = 880; o.connect(g); g.connect(a.destination);
+      g.gain.setValueAtTime(.0001, a.currentTime + t); g.gain.exponentialRampToValueAtTime(.4, a.currentTime + t + .02); g.gain.exponentialRampToValueAtTime(.0001, a.currentTime + t + .28);
+      o.start(a.currentTime + t); o.stop(a.currentTime + t + .3); });
+  } catch(e){}
+}
+$('#bTimer').addEventListener('click', () => $('#dTimer').showModal());
+$('#timerChip').addEventListener('click', stopTimer);
+$('#dTimer').addEventListener('close', () => {
+  const v = $('#dTimer').returnValue;
+  if (v === 'stop') stopTimer();
+  else if (v === 'custom'){ const m = parseFloat($('#tMin').value); if (m > 0) startTimer(m); }
+  else if (+v > 0) startTimer(+v);
+  $('#dTimer').returnValue = '';
+});
+
+/* Fullscreen */
+const wrap = $('#stageWrap');
+function toggleFull(){
+  if (document.fullscreenElement) document.exitFullscreen();
+  else (wrap.requestFullscreen || wrap.webkitRequestFullscreen)?.call(wrap).catch?.(() => toast('Trình duyệt chặn toàn màn hình.', {err:true}));
+}
+$('#bFull').addEventListener('click', toggleFull);
+document.addEventListener('fullscreenchange', () => { $('#bFull').querySelector('.label').textContent = document.fullscreenElement ? 'Thoát' : 'Toàn màn hình'; });
+
+$('#bPrev').addEventListener('click', () => step(-1));
+$('#bNext').addEventListener('click', () => step(1));
+$('#bOpen').addEventListener('click', () => { const it = PL().items[curIdx]; if (it) window.open(openUrl(it), '_blank', 'noopener'); else toast('Chưa chọn video.'); });
+
+/* Return keyboard focus to the app when the mouse leaves the video */
+$('#stage').addEventListener('mouseleave', () => { if (document.activeElement === frame){ frame.blur(); $('#bar').setAttribute('tabindex', '-1'); $('#bar').focus({preventScroll:true}); } });
+
+/* ---------------- Screenshot ---------------- */
+let capStream = null, capVideo = null, shotN = 0;
+const nextFrame = () => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r)));
+function grabNative(){
+  const st = $('#stage'), W = st.clientWidth, H = st.clientHeight;
+  const vw = frame.videoWidth, vh = frame.videoHeight; if (!vw) throw new Error('notready');
+  const k = Math.min(W / vw, H / vh), cw = vw * k, ch = vh * k;
+  const scale = Math.min(2560 / W, Math.max(devicePixelRatio || 1, vw / cw));
+  const c = document.createElement('canvas'); c.width = Math.round(W * scale); c.height = Math.round(H * scale);
+  const g = c.getContext('2d'); g.fillStyle = '#000'; g.fillRect(0, 0, c.width, c.height);
+  g.drawImage(frame, (W - cw) / 2 * scale, (H - ch) / 2 * scale, cw * scale, ch * scale);
+  g.drawImage(cv, 0, 0, c.width, c.height);
+  c.toDataURL('image/png', .1); // throws if the frame can't be read
+  return c;
+}
+async function grabTab(){
+  if (!navigator.mediaDevices?.getDisplayMedia) throw new Error('nosupport');
+  if (!capStream || !capStream.active){
+    toast('Lần đầu: trình duyệt hỏi quyền – chọn “Tab này” rồi bấm Chia sẻ. Các lần sau chụp ngay.', {ms:5000});
+    capStream = await navigator.mediaDevices.getDisplayMedia({video:{displaySurface:'browser', frameRate:30}, audio:false, preferCurrentTab:true, selfBrowserSurface:'include'});
+    capStream.getVideoTracks()[0].addEventListener('ended', () => { capStream = null; });
+    capVideo = document.createElement('video'); capVideo.muted = true; capVideo.playsInline = true; capVideo.srcObject = capStream;
+    await capVideo.play(); await new Promise(r => setTimeout(r, 400));
+  }
+  document.body.classList.add('capturing'); await nextFrame(); await new Promise(r => setTimeout(r, 120));
+  try {
+    const r = $('#stage').getBoundingClientRect();
+    const sx = capVideo.videoWidth / innerWidth, sy = capVideo.videoHeight / innerHeight;
+    const c = document.createElement('canvas'); c.width = Math.round(r.width * sx); c.height = Math.round(r.height * sy);
+    c.getContext('2d').drawImage(capVideo, r.left * sx, r.top * sy, r.width * sx, r.height * sy, 0, 0, c.width, c.height);
+    return c;
+  } finally { document.body.classList.remove('capturing'); }
+}
+async function screenshot(){
+  if (!frame){ toast('Chưa chọn video để chụp.'); return; }
+  const btn = $('#bShot'); if (btn.disabled) return; btn.disabled = true;
+  try {
+    let c = null;
+    if (isNative()){ try { c = grabNative(); } catch(e){ c = null; } }
+    if (!c) c = await grabTab();
+    const f = $('#flash'); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on');
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    const it = PL().items[curIdx] || {title:'video'};
+    let tag = String(++shotN).padStart(2, '0');
+    if (isNative()){ const t = Math.floor(frame.currentTime); tag = `${Math.floor(t/60)}m${String(t%60).padStart(2,'0')}s`; }
+    const name = `${it.title} - ${tag}.png`.replace(/[\\/:*?"<>|]/g, '_');
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+    let copied = false;
+    try { await navigator.clipboard.write([new ClipboardItem({'image/png': blob})]); copied = true; } catch(e){}
+    toast(copied ? 'Đã chụp – ảnh đã tải về và sao chép, dán (Ctrl/⌘+V) được ngay' : 'Đã chụp – ảnh đã tải về', {action:'Xem', onAction:() => window.open(url, '_blank'), ms:5000});
+    setTimeout(() => URL.revokeObjectURL(url), 120000);
+  } catch(e){
+    if (e && e.name === 'NotAllowedError') toast('Thầy chưa cho phép chụp tab. Bấm Chụp lại và chọn “Tab này”.', {err:true});
+    else if (e && e.message === 'nosupport') toast('Trình duyệt này chưa hỗ trợ chụp. Thầy dùng Chrome hoặc Edge trên máy tính nhé.', {err:true});
+    else toast('Chưa chụp được, thầy thử lại.', {err:true});
+  } finally { btn.disabled = false; }
+}
+$('#bShot').addEventListener('click', screenshot);
+
+/* ---------------- Keyboard ---------------- */
+document.addEventListener('keydown', e => {
+  if (e.target.matches('input,textarea,select') || e.ctrlKey || e.metaKey || e.altKey) return;
+  if (document.querySelector('dialog[open]')) return;
+  const k = e.key;
+  if (e.shiftKey && (k === 'ArrowRight' || k === 'ArrowLeft')){ e.preventDefault(); seek(k === 'ArrowRight' ? 10 : -10); return; }
+  const map = {
+    ' ':togglePlay, k:togglePlay, K:togglePlay,
+    '[':() => spotSize(.85), ']':() => spotSize(1.18),
+    ArrowRight:() => step(1), PageDown:() => step(1),
+    ArrowLeft:() => step(-1), PageUp:() => step(-1),
+    f:toggleFull, F:toggleFull, d:() => setTool('draw'), D:() => setTool('draw'),
+    c:clearDraw, C:clearDraw, s:() => setTool('spot'), S:() => setTool('spot'),
+    b:toggleBlack, B:toggleBlack, '.':toggleBlack,
+    t:() => $('#dTimer').showModal(), T:() => $('#dTimer').showModal(),
+    l:toggleSide, L:toggleSide, p:screenshot, P:screenshot, '?':() => $('#dKeys').showModal(),
+    Escape:() => { setTool(null); if ($('#black').classList.contains('on')) toggleBlack(); }
+  };
+  if (map[k]){ e.preventDefault(); map[k](); return; }
+  if (/^[1-9]$/.test(k)) play(+k - 1);
+});
+
+/* ---------------- Settings / theme / side ---------------- */
+function toggleSide(){ document.body.classList.toggle('class-mode'); }
+$('#bSide').addEventListener('click', toggleSide);
+function applyTheme(){ if (S.theme) document.documentElement.dataset.theme = S.theme; else delete document.documentElement.dataset.theme; }
+$('#bTheme').addEventListener('click', () => {
+  const dark = S.theme ? S.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches;
+  S.theme = dark ? 'light' : 'dark'; applyTheme(); save();
+});
+$('#bKeys').addEventListener('click', () => $('#dKeys').showModal());
+$('#bSettings').addEventListener('click', () => {
+  $('#apiKey').value = S.apiKey || ''; $('#optAutoNext').checked = !!S.loopNext; $('#optClearOnChange').checked = S.clearOnChange !== false;
+  $('#dSettings').showModal();
+});
+$('#dSettings').addEventListener('close', () => {
+  if ($('#dSettings').returnValue !== 'save') return;
+  const nk = $('#apiKey').value.trim(); if (nk !== S.apiKey) S.playlists.forEach(p => p.items.forEach(i => delete i.noNative));
+  S.apiKey = nk; S.loopNext = $('#optAutoNext').checked; S.clearOnChange = $('#optClearOnChange').checked;
+  save(); toast('Đã lưu cài đặt'); if (curIdx >= 0) play(curIdx);
+});
+
+$('#bAdd').addEventListener('click', addLinks);
+$('#links').addEventListener('keydown', e => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); addLinks(); } });
+let qT; $('#q').addEventListener('input', () => { clearTimeout(qT); qT = setTimeout(renderList, 150); });
+
+/* Paste a link anywhere (not in a field) → add it */
+document.addEventListener('paste', e => {
+  if (e.target.matches('input,textarea')) return;
+  const t = e.clipboardData?.getData('text') || '';
+  if (/drive\.google\.com/.test(t)){ $('#links').value = t; addLinks(); }
+});
+
+/* ---------------- Init ---------------- */
+applyTheme(); renderPlSel(); renderList(); resume(); readHash();
+})();
+</script>
+</body>
+</html>
